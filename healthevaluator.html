@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Health Risk Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #4B5563; /* text-gray-600 */
+        }
+        .metric-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1F2937; /* text-gray-800 */
+        }
+        .recommendation-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #E5E7EB; /* border-gray-200 */
+        }
+        .recommendation-icon {
+            flex-shrink: 0;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0.25rem;
+        }
+        .status-ok { background-color: #D1FAE5; color: #065F46; } /* bg-green-100, text-green-700 */
+        .status-advisory { background-color: #FEF3C7; color: #92400E; } /* bg-amber-100, text-amber-700 */
+        .status-critical { background-color: #FEE2E2; color: #991B1B; } /* bg-red-100, text-red-700 */
+        .input-label {
+            font-weight: 500;
+            color: #374151; /* text-gray-700 */
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #D1D5DB; /* border-gray-300 */
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">AI Health Risk Predictor</h1>
+                <p class="text-gray-500 mt-1">Personalized insights for better well-being</p>
+            </div>
+            <div class="text-right mt-4 sm:mt-0">
+                <p id="current-time" class="font-semibold text-lg"></p>
+                <p class="text-sm text-gray-500">Last updated: <span id="last-updated"></span></p>
+            </div>
+        </header>
+
+        <!-- Interactive Form -->
+        <div class="card mb-8">
+            <h2 class="text-2xl font-bold mb-4">Enter Patient Test Records</h2>
+            <form id="data-form" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div>
+                    <label for="bp-systolic-input" class="input-label">BP (Systolic)</label>
+                    <input type="number" id="bp-systolic-input" class="input-field" value="135">
+                </div>
+                <div>
+                    <label for="bp-diastolic-input" class="input-label">BP (Diastolic)</label>
+                    <input type="number" id="bp-diastolic-input" class="input-field" value="85">
+                </div>
+                <div>
+                    <label for="glucose-input" class="input-label">Glucose (mg/dL)</label>
+                    <input type="number" id="glucose-input" class="input-field" value="110">
+                </div>
+                <div>
+                    <label for="bmi-input" class="input-label">BMI</label>
+                    <input type="number" id="bmi-input" class="input-field" value="28.5" step="0.1">
+                </div>
+                <div class="md:col-span-3 lg:col-span-1">
+                    <button type="submit" class="w-full h-full bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors mt-2 md:mt-0 lg:mt-7">
+                        Analyze Health Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Main Grid for Risk Prediction -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Diabetes Risk -->
+            <div class="card">
+                <h2 class="card-title mb-2">Diabetes Risk</h2>
+                <p class="metric-value"><span id="diabetes-risk">...</span><span class="text-xl font-medium text-gray-500">%</span></p>
+                <p id="diabetes-risk-status" class="text-sm font-semibold mt-2"></p>
+            </div>
+
+            <!-- Heart Disease Risk -->
+            <div class="card">
+                <h2 class="card-title mb-2">Heart Disease Risk</h2>
+                <p class="metric-value"><span id="heart-disease-risk">...</span> <span class="text-xl font-medium text-gray-500">%</span></p>
+                 <p id="heart-disease-risk-status" class="text-sm font-semibold mt-2"></p>
+            </div>
+        </div>
+
+        <!-- Recommendations Section -->
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold mb-4">Personalized Health Recommendations</h2>
+            <div id="recommendations-container" class="space-y-4">
+                <!-- Recommendations will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- Health Risk Prediction Logic (Simplified ML Model Simulation) ---
+
+    function getDiabetesRisk(glucose, bmi) {
+        let risk = 5; // Base risk
+        if (glucose > 100) risk += (glucose - 100) * 0.5;
+        if (glucose > 125) risk += 20; // Pre-diabetic/diabetic range
+        if (bmi > 25) risk += (bmi - 25) * 1.5;
+        if (bmi > 30) risk += 15; // Obesity is a major factor
+        return Math.min(Math.max(risk, 0), 95); // Cap risk at 95%
+    }
+
+    function getHeartDiseaseRisk(systolic, diastolic, bmi) {
+        let risk = 5; // Base risk
+        if (systolic > 120) risk += (systolic - 120) * 0.4;
+        if (systolic > 140) risk += 15; // Hypertension stage 1
+        if (diastolic > 80) risk += (diastolic - 80) * 0.5;
+        if (diastolic > 90) risk += 15; // Hypertension stage 2
+        if (bmi > 25) risk += (bmi - 25) * 1.2;
+        if (bmi > 30) risk += 15;
+        return Math.min(Math.max(risk, 0), 95);
+    }
+
+    function getHealthRecommendations(systolic, diastolic, glucose, bmi) {
+        const recommendations = [];
+
+        // 1. Blood Pressure Management
+        if (systolic > 120 || diastolic > 80) {
+            recommendations.push({
+                icon: '❤️',
+                title: 'Manage Blood Pressure',
+                text: 'Your blood pressure is elevated. High BP increases the risk of heart attack and stroke.',
+                counters: [
+                    'Reduce sodium intake by avoiding processed foods.',
+                    'Eat potassium-rich foods like bananas, spinach, and sweet potatoes.',
+                    'Aim for 30 minutes of moderate exercise most days of the week.'
+                ],
+                status: systolic > 140 || diastolic > 90 ? 'CRITICAL' : 'ADVISORY'
+            });
+        }
+
+        // 2. Blood Sugar Control
+        if (glucose > 100) {
+            recommendations.push({
+                icon: '🩸',
+                title: 'Control Blood Sugar',
+                text: 'Your glucose level is higher than normal, increasing diabetes risk.',
+                counters: [
+                    'Limit sugary drinks and refined carbs (white bread, pasta).',
+                    'Increase fiber intake with whole grains, legumes, and vegetables.',
+                    'Take a 10-15 minute walk after your main meals.'
+                ],
+                status: glucose > 125 ? 'CRITICAL' : 'ADVISORY'
+            });
+        }
+
+        // 3. Weight Management (BMI)
+        if (bmi > 25) {
+             recommendations.push({
+                icon: '⚖️',
+                title: 'Achieve a Healthy Weight',
+                text: 'Your BMI is in the overweight or obese range, which strains your heart and affects metabolism.',
+                counters: [
+                    'Practice portion control; use smaller plates.',
+                    'Combine cardio (brisk walking, cycling) with strength training twice a week.',
+                    'Drink at least 8 glasses of water daily.'
+                ],
+                status: bmi > 30 ? 'CRITICAL' : 'ADVISORY'
+            });
+        }
+
+        // 4. General Physical Activity
+        if (recommendations.length > 0) { // Show this if any other risk is present
+            recommendations.push({
+                icon: '🏃',
+                title: 'Increase Physical Activity',
+                text: 'Regular exercise is crucial for managing weight, blood pressure, and blood sugar.',
+                counters: [
+                    'Aim for 150 minutes of moderate-intensity aerobic exercise per week.',
+                    'Incorporate activities you enjoy, like dancing, swimming, or hiking.',
+                    'Reduce sedentary time by taking short breaks to walk and stretch.'
+                ],
+                status: 'ADVISORY'
+            });
+        }
+        
+        // 5. Stress Management
+        if (systolic > 130 || glucose > 110) {
+             recommendations.push({
+                icon: '🧘',
+                title: 'Manage Stress Levels',
+                text: 'Chronic stress can negatively impact your cardiovascular and metabolic health.',
+                counters: [
+                    'Practice mindfulness or meditation for 10 minutes daily.',
+                    'Ensure you get 7-9 hours of quality sleep per night.',
+                    'Engage in relaxing hobbies to unwind.'
+                ],
+                status: 'ADVISORY'
+            });
+        }
+
+        // Default "Good Job" message if no other recommendations were triggered
+        if (recommendations.length === 0) {
+            recommendations.push({
+                icon: '�',
+                title: 'Maintain Healthy Habits',
+                text: 'Your key health metrics are within the normal range. Keep up the great work!',
+                counters: [
+                    'Continue with your balanced diet and regular exercise.',
+                    'Schedule regular health check-ups to monitor your status.',
+                    'Stay hydrated and prioritize sleep.'
+                ],
+                status: 'OK'
+            });
+        }
+        return recommendations;
+    }
+
+
+    // --- Dashboard Update Logic ---
+
+    const ui = {
+        dataForm: document.getElementById('data-form'),
+        bpSystolicInput: document.getElementById('bp-systolic-input'),
+        bpDiastolicInput: document.getElementById('bp-diastolic-input'),
+        glucoseInput: document.getElementById('glucose-input'),
+        bmiInput: document.getElementById('bmi-input'),
+        
+        diabetesRisk: document.getElementById('diabetes-risk'),
+        diabetesRiskStatus: document.getElementById('diabetes-risk-status'),
+        heartDiseaseRisk: document.getElementById('heart-disease-risk'),
+        heartDiseaseRiskStatus: document.getElementById('heart-disease-risk-status'),
+        
+        recommendationsContainer: document.getElementById('recommendations-container'),
+        currentTime: document.getElementById('current-time'),
+        lastUpdated: document.getElementById('last-updated'),
+    };
+
+    function updateDashboard(patientData) {
+        const diabetesRisk = getDiabetesRisk(patientData.glucose, patientData.bmi);
+        const heartDiseaseRisk = getHeartDiseaseRisk(patientData.systolic, patientData.diastolic, patientData.bmi);
+        const recommendations = getHealthRecommendations(patientData.systolic, patientData.diastolic, patientData.glucose, patientData.bmi);
+
+        // Update risk cards
+        ui.diabetesRisk.textContent = diabetesRisk.toFixed(1);
+        ui.diabetesRiskStatus.textContent = diabetesRisk > 40 ? 'High Risk' : diabetesRisk > 20 ? 'Moderate Risk' : 'Low Risk';
+        ui.diabetesRiskStatus.className = `text-sm font-semibold mt-2 ${diabetesRisk > 40 ? 'text-red-600' : diabetesRisk > 20 ? 'text-amber-600' : 'text-green-600'}`;
+
+        ui.heartDiseaseRisk.textContent = heartDiseaseRisk.toFixed(1);
+        ui.heartDiseaseRiskStatus.textContent = heartDiseaseRisk > 40 ? 'High Risk' : heartDiseaseRisk > 20 ? 'Moderate Risk' : 'Low Risk';
+        ui.heartDiseaseRiskStatus.className = `text-sm font-semibold mt-2 ${heartDiseaseRisk > 40 ? 'text-red-600' : heartDiseaseRisk > 20 ? 'text-amber-600' : 'text-green-600'}`;
+        
+        // Update recommendations
+        ui.recommendationsContainer.innerHTML = ''; // Clear previous recommendations
+        recommendations.forEach(rec => {
+            let statusClass = '';
+            if (rec.status === 'OK') statusClass = 'status-ok';
+            else if (rec.status === 'ADVISORY') statusClass = 'status-advisory';
+            else if (rec.status === 'CRITICAL') statusClass = 'status-critical';
+
+            const countersHTML = rec.counters ? `
+                <ul class="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
+                    ${rec.counters.map(counter => `<li>${counter}</li>`).join('')}
+                </ul>
+            ` : '';
+
+            const recElement = document.createElement('div');
+            recElement.className = 'recommendation-card';
+            recElement.style.borderColor = (rec.status === 'CRITICAL') ? '#F87171' : (rec.status === 'ADVISORY') ? '#FBBF24' : '#E5E7EB';
+            recElement.innerHTML = `
+                <div class="recommendation-icon ${statusClass}">
+                    <span class="text-2xl">${rec.icon}</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg">${rec.title}</h3>
+                    <p class="text-gray-700 font-medium">${rec.text}</p>
+                    ${countersHTML}
+                </div>
+            `;
+            ui.recommendationsContainer.appendChild(recElement);
+        });
+
+        // Update time
+        const now = new Date();
+        ui.lastUpdated.textContent = now.toLocaleTimeString();
+    }
+    
+    function updateTime() {
+        ui.currentTime.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function handleFormSubmit(event) {
+        event.preventDefault();
+        const patientData = {
+            systolic: parseFloat(ui.bpSystolicInput.value) || 0,
+            diastolic: parseFloat(ui.bpDiastolicInput.value) || 0,
+            glucose: parseFloat(ui.glucoseInput.value) || 0,
+            bmi: parseFloat(ui.bmiInput.value) || 0,
+        };
+        updateDashboard(patientData);
+    }
+
+    // Initial load and event listeners
+    window.addEventListener('load', () => {
+        ui.dataForm.addEventListener('submit', handleFormSubmit);
+        handleFormSubmit({ preventDefault: () => {} }); // Trigger initial calculation
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+    });
+</script>
+
+</body>
+</html>
